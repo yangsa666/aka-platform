@@ -31,6 +31,19 @@ const ProjectForm = () => {
       setLoading(true);
       const response = await api.getProjectById(id);
       const project = response.data;
+      
+      // 将已选择的所有者信息添加到users状态中，以便Select组件能够正确显示
+      if (project.owners && project.owners.length > 0) {
+        // 创建一个临时对象存储用户信息，避免重复
+        const userMap = new Map();
+        project.owners.forEach(owner => {
+          userMap.set(owner.azureId, owner);
+        });
+        
+        // 将用户信息转换为数组并设置到users状态
+        setUsers(Array.from(userMap.values()));
+      }
+      
       form.setFieldsValue({
         ...project,
         owners: project.owners.map(owner => owner.azureId), // 使用azureId作为值

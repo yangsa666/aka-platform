@@ -114,20 +114,27 @@ const ProjectApproval = () => {
       key: 'status',
       render: (status) => getStatusTag(status),
     },
-    {
-      title: 'Owners',
+    {      title: 'Owners',
       dataIndex: 'owners',
       key: 'owners',
-      render: (owners) => (
-        <Space wrap size="small">
-          {owners.slice(0, 3).map((owner, index) => (
-            <Tag key={index} color="blue">
-              {owner.displayName}
-            </Tag>
-          ))}
-          {owners.length > 3 && <Tag color="default">+{owners.length - 3}</Tag>}
-        </Space>
-      ),
+      render: (owners) => {
+        // 确保owners是一个数组
+        if (!Array.isArray(owners)) {
+          return '-';
+        }
+        
+        return (
+          <Space wrap size="small">
+            {owners.slice(0, 3).map((owner, index) => (
+              <Tag key={index} color="blue">
+                {/* 如果owner是一个对象，显示displayName；否则，显示owner本身 */}
+                {typeof owner === 'object' && owner !== null ? owner.displayName || owner.azureId : owner}
+              </Tag>
+            ))}
+            {owners.length > 3 && <Tag color="default">+{owners.length - 3}</Tag>}
+          </Space>
+        );
+      },
     },
     {      title: 'Created At',
       dataIndex: 'createdAt',

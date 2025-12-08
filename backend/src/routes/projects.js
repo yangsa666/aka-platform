@@ -68,7 +68,45 @@ router.post('/', authenticate, async (req, res) => {
       comments: 'Project created'
     });
     
-    res.status(201).json(project);
+    // 将Mongoose文档转换为普通JavaScript对象
+    const projectObj = project.toObject();
+    
+    // 将owners数组中的azureId转换为完整的用户信息
+    const formattedOwners = await Promise.all(projectObj.owners.map(async (azureId) => {
+      try {
+        // 直接通过Graph API获取用户信息
+        console.log(`Getting user ${azureId} from Graph API for new project`);
+        const matchedUser = await getUserById(azureId);
+        
+        if (matchedUser) {
+          // 将Graph API返回的用户信息转换为与本地用户一致的格式
+          return {
+            azureId: matchedUser.id,
+            displayName: matchedUser.displayName,
+            email: matchedUser.mail || matchedUser.userPrincipalName || `${azureId}@unknown.com`
+          };
+        } else {
+          // 如果Graph API也没有找到用户，返回一个默认对象
+          return {
+            azureId,
+            displayName: 'Unknown User',
+            email: `${azureId}@unknown.com`
+          };
+        }
+      } catch (graphError) {
+        console.error(`Error getting user ${azureId} from Graph API for new project:`, graphError);
+        // 如果Graph API调用失败，返回一个默认对象
+        return {
+          azureId,
+          displayName: 'Unknown User',
+          email: `${azureId}@unknown.com`
+        };
+      }
+    }));
+    
+    projectObj.owners = formattedOwners;
+    
+    res.status(201).json(projectObj);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -268,7 +306,45 @@ router.put('/:id', authenticate, async (req, res) => {
       comments: 'Project updated'
     });
     
-    res.json(project);
+    // 将Mongoose文档转换为普通JavaScript对象
+    const projectObj = project.toObject();
+    
+    // 将owners数组中的azureId转换为完整的用户信息
+    const formattedOwners = await Promise.all(projectObj.owners.map(async (azureId) => {
+      try {
+        // 直接通过Graph API获取用户信息
+        console.log(`Getting user ${azureId} from Graph API for updated project`);
+        const matchedUser = await getUserById(azureId);
+        
+        if (matchedUser) {
+          // 将Graph API返回的用户信息转换为与本地用户一致的格式
+          return {
+            azureId: matchedUser.id,
+            displayName: matchedUser.displayName,
+            email: matchedUser.mail || matchedUser.userPrincipalName || `${azureId}@unknown.com`
+          };
+        } else {
+          // 如果Graph API也没有找到用户，返回一个默认对象
+          return {
+            azureId,
+            displayName: 'Unknown User',
+            email: `${azureId}@unknown.com`
+          };
+        }
+      } catch (graphError) {
+        console.error(`Error getting user ${azureId} from Graph API for updated project:`, graphError);
+        // 如果Graph API调用失败，返回一个默认对象
+        return {
+          azureId,
+          displayName: 'Unknown User',
+          email: `${azureId}@unknown.com`
+        };
+      }
+    }));
+    
+    projectObj.owners = formattedOwners;
+    
+    res.json(projectObj);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

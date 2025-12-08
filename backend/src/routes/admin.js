@@ -84,9 +84,12 @@ router.get('/projects', authenticate, authorize(['admin']), async (req, res) => 
       .limit(parseInt(limit));
     
     // 为每个项目获取所有者和审批者的详细信息
-    for (const project of projects) {
+    const processedProjects = await Promise.all(projects.map(async (project) => {
+      // 将Mongoose文档转换为普通JavaScript对象
+      const projectObj = project.toObject();
+      
       // 获取所有者详细信息 - 直接从Graph API获取
-      project.owners = await Promise.all(project.owners.map(async (azureId) => {
+      projectObj.owners = await Promise.all(projectObj.owners.map(async (azureId) => {
         try {
           const user = await getUserById(azureId);
           if (user) {
@@ -113,37 +116,39 @@ router.get('/projects', authenticate, authorize(['admin']), async (req, res) => 
       }));
       
       // 获取审批者详细信息 - 直接从Graph API获取
-      if (project.approvalInfo && project.approvalInfo.approver) {
+      if (projectObj.approvalInfo && projectObj.approvalInfo.approver) {
         try {
-          const approver = await getUserById(project.approvalInfo.approver);
+          const approver = await getUserById(projectObj.approvalInfo.approver);
           if (approver) {
-            project.approvalInfo.approver = {
+            projectObj.approvalInfo.approver = {
               azureId: approver.id,
               displayName: approver.displayName,
               email: approver.mail || approver.userPrincipalName
             };
           } else {
-            project.approvalInfo.approver = {
-              azureId: project.approvalInfo.approver,
+            projectObj.approvalInfo.approver = {
+              azureId: projectObj.approvalInfo.approver,
               displayName: 'Unknown User',
-              email: `${project.approvalInfo.approver}@unknown.com`
+              email: `${projectObj.approvalInfo.approver}@unknown.com`
             };
           }
         } catch (error) {
-          console.error(`Error getting approver ${project.approvalInfo.approver} from Graph API:`, error);
-          project.approvalInfo.approver = {
-            azureId: project.approvalInfo.approver,
+          console.error(`Error getting approver ${projectObj.approvalInfo.approver} from Graph API:`, error);
+          projectObj.approvalInfo.approver = {
+            azureId: projectObj.approvalInfo.approver,
             displayName: 'Unknown User',
-            email: `${project.approvalInfo.approver}@unknown.com`
+            email: `${projectObj.approvalInfo.approver}@unknown.com`
           };
         }
       }
-    }
+      
+      return projectObj;
+    }));
     
     // 获取总数
     const total = await Project.countDocuments(query);
     
-    res.json({ projects, total, page: parseInt(page), limit: parseInt(limit) });
+    res.json({ projects: processedProjects, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
