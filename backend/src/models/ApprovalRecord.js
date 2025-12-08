@@ -17,8 +17,7 @@ const approvalRecordSchema = new mongoose.Schema({
   
   // 操作用户
   operator: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true
   },
   

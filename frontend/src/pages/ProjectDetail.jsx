@@ -68,6 +68,9 @@ const ProjectDetail = () => {
     try {
       setLoading(true);
       const response = await api.getProjectById(id);
+      console.log('API Response:', response);
+      console.log('Project Data:', response.data);
+      console.log('Project Owners:', response.data.owners);
       setProject(response.data);
     } catch (error) {
       console.error('Failed to fetch project details:', error);
@@ -180,11 +183,15 @@ const ProjectDetail = () => {
           <div>
             <h3>Project Owners</h3>
             <Space wrap style={styles.projectOwners}>
-              {project.owners.map((owner, index) => (
-                <Tag key={index} color="blue">
-                  {owner.displayName} ({owner.email})
-                </Tag>
-              ))}
+              {Array.isArray(project.owners) && project.owners.length > 0 ? (
+                project.owners.map((owner, index) => (
+                  <Tag key={index} color="blue">
+                    {owner?.displayName || 'Unknown'} ({owner?.email || 'unknown@example.com'})
+                  </Tag>
+                ))
+              ) : (
+                <Tag color="default">No owners found</Tag>
+              )}
             </Space>
           </div>
 

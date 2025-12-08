@@ -2,9 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const Project = require('../models/Project');
+const User = require('../models/User');
 const ApprovalRecord = require('../models/ApprovalRecord');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const { pipeline } = require('stream');
+const { getUserById } = require('../services/graph-api');
+
 
 // 审批项目
 router.put('/approve/:id', authenticate, authorize(['admin']), async (req, res) => {
@@ -29,7 +32,7 @@ router.put('/approve/:id', authenticate, authorize(['admin']), async (req, res) 
     // 更新项目状态
     project.status = status;
     project.approvalInfo = {
-      approver: req.user._id,
+      approver: req.user.azureId,
       approvedAt: Date.now(),
       comments
     };
@@ -40,7 +43,7 @@ router.put('/approve/:id', authenticate, authorize(['admin']), async (req, res) 
     await ApprovalRecord.create({
       project: project._id,
       action: status === 'approved' ? 'approve' : 'reject',
-      operator: req.user._id,
+      operator: req.user.azureId,
       previousStatus,
       newStatus: status,
       comments
@@ -76,11 +79,66 @@ router.get('/projects', authenticate, authorize(['admin']), async (req, res) => 
     
     // 执行查询
     const projects = await Project.find(query)
-      .populate('owners', 'displayName email')
-      .populate('approvalInfo.approver', 'displayName')
       .sort({ 'stats.updatedAt': -1 })
       .skip(skip)
       .limit(parseInt(limit));
+    
+    // 为每个项目获取所有者和审批者的详细信息
+    for (const project of projects) {
+      // 获取所有者详细信息 - 直接从Graph API获取
+      project.owners = await Promise.all(project.owners.map(async (azureId) => {
+        try {
+          const user = await getUserById(azureId);
+          if (user) {
+            return {
+              azureId: user.id,
+              displayName: user.displayName,
+              email: user.mail || user.userPrincipalName
+            };
+          } else {
+            return {
+              azureId,
+              displayName: 'Unknown User',
+              email: `${azureId}@unknown.com`
+            };
+          }
+        } catch (error) {
+          console.error(`Error getting owner ${azureId} from Graph API:`, error);
+          return {
+            azureId,
+            displayName: 'Unknown User',
+            email: `${azureId}@unknown.com`
+          };
+        }
+      }));
+      
+      // 获取审批者详细信息 - 直接从Graph API获取
+      if (project.approvalInfo && project.approvalInfo.approver) {
+        try {
+          const approver = await getUserById(project.approvalInfo.approver);
+          if (approver) {
+            project.approvalInfo.approver = {
+              azureId: approver.id,
+              displayName: approver.displayName,
+              email: approver.mail || approver.userPrincipalName
+            };
+          } else {
+            project.approvalInfo.approver = {
+              azureId: project.approvalInfo.approver,
+              displayName: 'Unknown User',
+              email: `${project.approvalInfo.approver}@unknown.com`
+            };
+          }
+        } catch (error) {
+          console.error(`Error getting approver ${project.approvalInfo.approver} from Graph API:`, error);
+          project.approvalInfo.approver = {
+            azureId: project.approvalInfo.approver,
+            displayName: 'Unknown User',
+            email: `${project.approvalInfo.approver}@unknown.com`
+          };
+        }
+      }
+    }
     
     // 获取总数
     const total = await Project.countDocuments(query);
@@ -95,9 +153,64 @@ router.get('/projects', authenticate, authorize(['admin']), async (req, res) => 
 router.get('/export/csv', authenticate, authorize(['admin']), async (req, res) => {
   try {
     // 获取所有项目
-    const projects = await Project.find({})
-      .populate('owners', 'displayName email')
-      .populate('approvalInfo.approver', 'displayName');
+    const projects = await Project.find({});
+    
+    // 为每个项目获取所有者和审批者的详细信息
+    for (const project of projects) {
+      // 获取所有者详细信息 - 直接从Graph API获取
+      project.owners = await Promise.all(project.owners.map(async (azureId) => {
+        try {
+          const user = await getUserById(azureId);
+          if (user) {
+            return {
+              azureId: user.id,
+              displayName: user.displayName,
+              email: user.mail || user.userPrincipalName
+            };
+          } else {
+            return {
+              azureId,
+              displayName: 'Unknown User',
+              email: `${azureId}@unknown.com`
+            };
+          }
+        } catch (error) {
+          console.error(`Error getting owner ${azureId} from Graph API:`, error);
+          return {
+            azureId,
+            displayName: 'Unknown User',
+            email: `${azureId}@unknown.com`
+          };
+        }
+      }));
+      
+      // 获取审批者详细信息 - 直接从Graph API获取
+      if (project.approvalInfo && project.approvalInfo.approver) {
+        try {
+          const approver = await getUserById(project.approvalInfo.approver);
+          if (approver) {
+            project.approvalInfo.approver = {
+              azureId: approver.id,
+              displayName: approver.displayName,
+              email: approver.mail || approver.userPrincipalName
+            };
+          } else {
+            project.approvalInfo.approver = {
+              azureId: project.approvalInfo.approver,
+              displayName: 'Unknown User',
+              email: `${project.approvalInfo.approver}@unknown.com`
+            };
+          }
+        } catch (error) {
+          console.error(`Error getting approver ${project.approvalInfo.approver} from Graph API:`, error);
+          project.approvalInfo.approver = {
+            azureId: project.approvalInfo.approver,
+            displayName: 'Unknown User',
+            email: `${project.approvalInfo.approver}@unknown.com`
+          };
+        }
+      }
+    }
     
     // CSV配置
     const csvWriter = createCsvWriter({

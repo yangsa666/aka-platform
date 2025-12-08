@@ -76,6 +76,32 @@ const searchUsers = async (query) => {
   }
 };
 
+// 通过用户ID获取单个用户
+const getUserById = async (userId) => {
+  const client = getGraphClient();
+  try {
+    console.log(`Getting user by ID: ${userId}`);
+    const user = await client
+      .api(`/users/${userId}`)
+      .select('id,displayName,mail,givenName,surname,userPrincipalName')
+      .get();
+
+    console.log(`Graph API user result:`, JSON.stringify(user, null, 2));
+    
+    return user;
+  } catch (error) {
+    console.error('Error getting user by ID in Graph API:');
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error status:', error.statusCode);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    console.error('Full error object:', error);
+    
+    // 重新抛出错误以便上层处理
+    throw error;
+  }
+};
+
 // 获取所有用户（可选，用于测试）
 const getAllUsers = async () => {
   const client = getGraphClient();
@@ -95,5 +121,6 @@ const getAllUsers = async () => {
 
 module.exports = {
   searchUsers,
-  getAllUsers
+  getAllUsers,
+  getUserById
 };

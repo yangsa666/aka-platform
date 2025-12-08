@@ -5,7 +5,7 @@ const { authenticate } = require('../middleware/auth');
 const Project = require('../models/Project');
 const ApprovalRecord = require('../models/ApprovalRecord');
 const User = require('../models/User');
-const { searchUsers } = require('../services/graph-api');
+const { searchUsers, getUserById } = require('../services/graph-api');
 
 
 /**
@@ -27,55 +27,7 @@ const validateTargetUrl = (url) => {
   return urlRegex.test(url);
 };
 
-/**
- * 辅助函数：将邮箱数组转换为用户ObjectId数组
- * @param {Array} emails - 所有者邮箱数组
- * @returns {Array} - 用户ObjectId数组
- */
-const convertEmailsToUserIds = async (emails) => {
-  const ownerIds = [];
-  for (const email of emails) {
-    // 1. 先在本地数据库中查找用户
-    let user = await User.findOne({ email });
-    
-    if (!user) {
-      try {
-        // 2. 如果本地没有找到，通过Graph API搜索用户
-        const graphUsers = await searchUsers(email);
-        
-        if (graphUsers.length > 0) {
-          // 3. 使用Graph API返回的第一个匹配用户
-          const graphUser = graphUsers.find(u => u.mail.toLowerCase() === email.toLowerCase() || u.userPrincipalName.toLowerCase() === email.toLowerCase());
-          
-          if (graphUser) {
-            // 4. 创建新用户记录，包含完整的Azure AD信息
-            user = await User.create({
-              azureId: graphUser.id, // 使用AAD Object ID作为azureId
-              displayName: graphUser.displayName,
-              email: graphUser.mail || graphUser.userPrincipalName,
-              givenName: graphUser.givenName,
-              surname: graphUser.surname,
-              role: 'user'
-            });
-          } else {
-            // 如果Graph API没有找到匹配的用户，抛出错误
-            throw new Error(`User with email ${email} not found in Azure AD`);
-          }
-        } else {
-          // 如果Graph API没有找到用户，抛出错误
-          throw new Error(`User with email ${email} not found in Azure AD`);
-        }
-      } catch (error) {
-        console.error('Error searching user in Graph API:', error);
-        throw error;
-      }
-    }
-    
-    ownerIds.push(user._id);
-  }
-  
-  return ownerIds;
-};
+
 
 /**
  * 创建项目
@@ -94,14 +46,11 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Target URL must start with https://' });
     }
     
-    // 将邮箱数组转换为用户ObjectId数组
-    const ownerIds = await convertEmailsToUserIds(owners);
-    
     // 创建新项目
     const project = new Project({
       name,
       description,
-      owners: ownerIds,
+      owners: owners,
       shortName,
       targetUrl,
       status: 'pending'
@@ -113,7 +62,7 @@ router.post('/', authenticate, async (req, res) => {
     await ApprovalRecord.create({
       project: project._id,
       action: 'create',
-      operator: req.user._id,
+      operator: req.user.azureId,
       previousStatus: null,
       newStatus: 'pending',
       comments: 'Project created'
@@ -130,10 +79,53 @@ router.post('/', authenticate, async (req, res) => {
  */
 router.get('/', authenticate, async (req, res) => {
   try {
-    const projects = await Project.find({ owners: req.user._id })
-      .populate('owners', 'displayName email')
-      .populate('approvalInfo.approver', 'displayName')
+    const projects = await Project.find({ owners: req.user.azureId })
       .sort({ 'stats.updatedAt': -1 });
+    
+    // 将所有项目的owners转换为完整的用户信息
+    for (const project of projects) {
+      const ownerDetailsMap = new Map();
+      
+      // 保持原顺序，确保所有owner都被显示
+      const formattedOwners = await Promise.all(project.owners.map(async (azureId) => {
+        try {
+          // 直接通过Graph API获取用户信息
+          console.log(`Getting user ${azureId} from Graph API`);
+          const matchedUser = await getUserById(azureId);
+          
+          if (matchedUser) {
+            // 将Graph API返回的用户信息转换为与本地用户一致的格式
+            const formattedUser = {
+              azureId: matchedUser.id,
+              displayName: matchedUser.displayName,
+              email: matchedUser.mail || matchedUser.userPrincipalName || `${azureId}@unknown.com`
+            };
+            
+            // 将用户信息存入map，以便后续使用
+            ownerDetailsMap.set(azureId, formattedUser);
+            
+            return formattedUser;
+          } else {
+            // 如果Graph API也没有找到用户，返回一个默认对象
+            return {
+              azureId,
+              displayName: 'Unknown User',
+              email: `${azureId}@unknown.com`
+            };
+          }
+        } catch (graphError) {
+          console.error(`Error getting user ${azureId} from Graph API:`, graphError);
+          // 如果Graph API调用失败，返回一个默认对象
+          return {
+            azureId,
+            displayName: 'Unknown User',
+            email: `${azureId}@unknown.com`
+          };
+        }
+      }));
+      
+      project.owners = formattedOwners;
+    }
     
     res.json(projects);
   } catch (error) {
@@ -147,23 +139,76 @@ router.get('/', authenticate, async (req, res) => {
  */
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id)
-      .populate('owners', 'displayName email')
-      .populate('approvalInfo.approver', 'displayName');
+    const project = await Project.findById(req.params.id);
     
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
     
     // 验证用户是否有权限查看（必须是所有者或管理员）
-    const isOwner = project.owners.some(owner => owner._id.equals(req.user._id));
+    const isOwner = project.owners.includes(req.user.azureId);
     const isAdmin = req.user.role === 'admin';
     
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: 'Forbidden: You are not authorized to view this project' });
     }
     
-    res.json(project);
+    // 将Mongoose文档转换为普通JavaScript对象
+    const projectObj = project.toObject();
+    
+    // 将owners数组中的azureId转换为完整的用户信息
+    const ownerDetailsMap = new Map();
+    
+    // 保持原顺序，确保所有owner都被显示
+    console.log(`Original project owners:`, projectObj.owners);
+    const formattedOwners = await Promise.all(projectObj.owners.map(async (azureId) => {
+      try {
+        // 直接通过Graph API获取用户信息
+        console.log(`Getting user ${azureId} from Graph API`);
+        const matchedUser = await getUserById(azureId);
+        
+        console.log(`Graph API response for ${azureId}:`, JSON.stringify(matchedUser, null, 2));
+        
+        if (matchedUser) {
+          // 将Graph API返回的用户信息转换为与本地用户一致的格式
+          const formattedUser = {
+            azureId: matchedUser.id,
+            displayName: matchedUser.displayName,
+            email: matchedUser.mail || matchedUser.userPrincipalName || `${azureId}@unknown.com`
+          };
+          
+          console.log(`Formatted user for ${azureId}:`, formattedUser);
+          
+          // 将用户信息存入map，以便后续使用
+          ownerDetailsMap.set(azureId, formattedUser);
+          
+          return formattedUser;
+        } else {
+          // 如果Graph API也没有找到用户，返回一个默认对象
+          return {
+            azureId,
+            displayName: 'Unknown User',
+            email: `${azureId}@unknown.com`
+          };
+        }
+      } catch (graphError) {
+        console.error(`Error getting user ${azureId} from Graph API:`, graphError);
+        // 如果Graph API调用失败，返回一个默认对象
+        return {
+          azureId,
+          displayName: 'Unknown User',
+          email: `${azureId}@unknown.com`
+        };
+      }
+    }));
+
+    console.log(`Formatted owners array:`, formattedOwners);
+    
+    projectObj.owners = formattedOwners;
+    
+    console.log(`Final project object being returned:`, JSON.stringify(projectObj, null, 2));
+    
+    res.json(projectObj);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -187,9 +232,6 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Target URL must start with https://' });
     }
     
-    // 将邮箱数组转换为用户ObjectId数组
-    const ownerIds = await convertEmailsToUserIds(owners);
-    
     // 查找项目
     const project = await Project.findById(req.params.id);
     
@@ -198,7 +240,7 @@ router.put('/:id', authenticate, async (req, res) => {
     }
     
     // 验证用户是否有权限更新（必须是所有者）
-    if (!project.owners.some(owner => owner._id.equals(req.user._id))) {
+    if (!project.owners.includes(req.user.azureId)) {
       return res.status(403).json({ message: 'Forbidden: You are not an owner of this project' });
     }
     
@@ -208,7 +250,7 @@ router.put('/:id', authenticate, async (req, res) => {
     // 更新项目
     project.name = name;
     project.description = description;
-    project.owners = ownerIds;
+    project.owners = owners;
     project.shortName = shortName;
     project.targetUrl = targetUrl;
     project.status = 'pending'; // 更新后回到待审批状态
@@ -220,7 +262,7 @@ router.put('/:id', authenticate, async (req, res) => {
     await ApprovalRecord.create({
       project: project._id,
       action: 'update',
-      operator: req.user._id,
+      operator: req.user.azureId,
       previousStatus,
       newStatus: 'pending',
       comments: 'Project updated'
@@ -253,7 +295,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     }
     
     // 验证用户是否有权限删除（必须是所有者或管理员）
-    const isOwner = project.owners.some(owner => owner._id.equals(req.user._id));
+    const isOwner = project.owners.includes(req.user.azureId);
     const isAdmin = req.user.role === 'admin';
     
     if (!isOwner && !isAdmin) {
@@ -271,7 +313,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     await ApprovalRecord.create({
       project: id,
       action: 'delete',
-      operator: req.user._id,
+      operator: req.user.azureId,
       previousStatus: project.status,
       newStatus: null,
       comments: 'Project deleted'

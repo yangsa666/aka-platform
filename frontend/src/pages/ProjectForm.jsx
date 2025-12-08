@@ -33,7 +33,7 @@ const ProjectForm = () => {
       const project = response.data;
       form.setFieldsValue({
         ...project,
-        owners: project.owners.map(owner => owner.email), // 将所有者转换为邮箱数组
+        owners: project.owners.map(owner => owner.azureId), // 使用azureId作为值
       });
     } catch (error) {
       console.error('Failed to fetch project:', error);
@@ -53,9 +53,14 @@ const ProjectForm = () => {
       console.log('Searching users with value:', value);
       const response = await api.searchUsers(value);
       console.log('User search response:', response);
+      console.log('User search response data:', response.data);
       setUsers(response.data);
     } catch (error) {
       console.error('Failed to search users:', error);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error config:', error.config);
+      console.error('Error response:', error.response);
       console.error('Error details:', error.response?.data || error.message || error);
       message.error('Failed to search users');
     } finally {
@@ -154,7 +159,7 @@ const ProjectForm = () => {
               style={{ width: '100%' }}
             >
               {users.map((user) => (
-                <Option key={user.email} value={user.email}>
+                <Option key={user.azureId} value={user.azureId}>
                   <Space>
                     <UserOutlined />
                     <span>{user.displayName} ({user.email})</span>

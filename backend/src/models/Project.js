@@ -14,8 +14,7 @@ const projectSchema = new mongoose.Schema({
   
   // 项目所有者（至少两个用户）
   owners: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true
   }],
   
@@ -43,8 +42,7 @@ const projectSchema = new mongoose.Schema({
   // 审批信息
   approvalInfo: {
     approver: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      type: String
     },
     approvedAt: Date,
     comments: String

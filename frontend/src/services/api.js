@@ -3,7 +3,7 @@ import { msalInstance } from '../config/authConfig';
 
 // 创建Axios实例
 const apiClient = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -17,7 +17,8 @@ apiClient.interceptors.request.use(
       // 获取当前活动账号
       const accounts = msalInstance.getAllAccounts();
       if (accounts.length === 0) {
-        throw new Error('No accounts found');
+        console.warn('No accounts found, proceeding without token');
+        return config;
       }
 
       // 获取访问令牌
@@ -31,16 +32,11 @@ apiClient.interceptors.request.use(
     } catch (error) {
       // 如果静默获取令牌失败，尝试交互式获取
       if (error.name === 'InteractionRequiredAuthError') {
-        try {
-          const accessToken = await msalInstance.acquireTokenRedirect({
-            scopes: ['api://63ca854f-4643-44a6-8675-796c601a0c00/user_impersonation'],
-          });
-          config.headers.Authorization = `Bearer ${accessToken.accessToken}`;
-        } catch (redirectError) {
-          throw redirectError;
-        }
+        console.warn('Token acquisition required interaction, proceeding without token');
+        // 不抛出错误，让请求继续进行
       } else {
-        throw error;
+        console.warn('Error acquiring token, proceeding without token:', error.message);
+        // 不抛出错误，让请求继续进行
       }
     }
 
