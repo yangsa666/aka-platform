@@ -71,6 +71,10 @@ router.post('/', authenticate, async (req, res) => {
     // 将Mongoose文档转换为普通JavaScript对象
     const projectObj = project.toObject();
     
+    // 添加调试日志，检查projectObj是否包含shortName字段
+    console.log(`Project object after toObject():`, JSON.stringify(projectObj, null, 2));
+    console.log(`Project shortName:`, projectObj.shortName);
+    
     // 将owners数组中的azureId转换为完整的用户信息
     const formattedOwners = await Promise.all(projectObj.owners.map(async (azureId) => {
       try {

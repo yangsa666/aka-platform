@@ -32,6 +32,11 @@ const ProjectForm = () => {
       const response = await api.getProjectById(id);
       const project = response.data;
       
+      // 添加调试日志
+      console.log('API Response:', response);
+      console.log('Project Data:', project);
+      console.log('Project Short Name:', project.shortName);
+      
       // 将已选择的所有者信息添加到users状态中，以便Select组件能够正确显示
       if (project.owners && project.owners.length > 0) {
         // 创建一个临时对象存储用户信息，避免重复
@@ -44,10 +49,17 @@ const ProjectForm = () => {
         setUsers(Array.from(userMap.values()));
       }
       
+      // 单独设置shortName字段，确保它能正确显示
       form.setFieldsValue({
         ...project,
         owners: project.owners.map(owner => owner.azureId), // 使用azureId作为值
+        shortName: project.shortName, // 明确设置shortName字段
       });
+      
+      // 检查表单字段是否正确设置
+      const formValues = await form.getFieldsValue();
+      console.log('Form Values After Setting:', formValues);
+      console.log('Form Short Name:', formValues.shortName);
     } catch (error) {
       console.error('Failed to fetch project:', error);
       message.error('Failed to load project details');
@@ -195,7 +207,7 @@ const ProjectForm = () => {
               <Space.Addon style={{ whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'ellipsis', maxWidth: '100%' }}>
                 {appConfig.shortUrlDomain}/
               </Space.Addon>
-              <Input prefix={<TagOutlined />} placeholder="Enter short URL path" />
+              <Input prefix={<TagOutlined />} placeholder="Enter short URL path" value={form.getFieldValue('shortName')} />
             </Space.Compact>
           </Form.Item>
 
