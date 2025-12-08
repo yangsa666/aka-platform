@@ -42,16 +42,19 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:3000
+        - VITE_AZURE_AD_CLIENT_ID=1a4f90e6-cfb2-49c8-806d-192e19241449
+        - VITE_AZURE_AD_TENANT_ID=82d69786-2bb1-4e32-b78e-367dbbfaa7a5
+        - VITE_AZURE_AD_API_CLIENT_ID=63ca854f-4643-44a6-8675-796c601a0c00
+        - VITE_REDIRECT_URI=http://localhost:80
+        - VITE_SHORT_URL_DOMAIN=https://yangsa-mechrevo.tail8131a.ts.net
     container_name: aka-platform-frontend
     restart: always
     depends_on:
       - backend
     ports:
       - "80:80"
-    environment:
-      - VITE_API_URL=http://backend:3000
-      - VITE_AZURE_AD_CLIENT_ID=your-client-id
-      - VITE_AZURE_AD_TENANT_ID=your-tenant-id
 
 volumes:
   mongo-data:
