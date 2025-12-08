@@ -21,17 +21,22 @@ const AdminRoute = ({ children }) => {
   const [isAdmin, setIsAdmin] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const location = useLocation();
+  // 使用useRef确保API请求只执行一次
+  const checkAdminRef = React.useRef(false);
 
   React.useEffect(() => {
     const checkAdmin = async () => {
-      try {
-        const response = await api.getCurrentUser();
-        setIsAdmin(response.data.role === 'admin');
-      } catch (error) {
-        console.error('Failed to check admin status:', error);
-        setIsAdmin(false);
-      } finally {
-        setLoading(false);
+      if (!checkAdminRef.current) {
+        checkAdminRef.current = true;
+        try {
+          const response = await api.getCurrentUser();
+          setIsAdmin(response.data.role === 'admin');
+        } catch (error) {
+          console.error('Failed to check admin status:', error);
+          setIsAdmin(false);
+        } finally {
+          setLoading(false);
+        }
       }
     };
 

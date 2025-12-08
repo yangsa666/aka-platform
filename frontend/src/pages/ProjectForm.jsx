@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Form, Input, InputNumber, Button, Space, Select, message, Spin } from 'antd';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
@@ -16,10 +16,13 @@ const ProjectForm = () => {
   const [isEditing, setIsEditing] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
+  // 使用useRef确保API请求只执行一次
+  const fetchProjectRef = useRef({});
 
   // 如果有ID，获取项目详情进行编辑
   useEffect(() => {
-    if (id) {
+    if (id && fetchProjectRef.current[id] !== true) {
+      fetchProjectRef.current[id] = true;
       setIsEditing(true);
       fetchProjectDetail();
     }

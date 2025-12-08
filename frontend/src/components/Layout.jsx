@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Layout, Menu, Avatar, Dropdown, Typography } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { msalInstance } from '../config/authConfig';
@@ -92,16 +92,21 @@ const LayoutComponent = ({ children }) => {
   const [user, setUser] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+  // 使用useRef确保API请求只执行一次
+  const fetchUserRef = useRef(false);
 
   useEffect(() => {
     // 获取当前用户信息
     const fetchUser = async () => {
-      try {
-        const response = await api.getCurrentUser();
-        setUser(response.data);
-      } catch (error) {
-        // 静默失败，不影响应用运行
-        console.error('Failed to fetch user:', error);
+      if (!fetchUserRef.current) {
+        fetchUserRef.current = true;
+        try {
+          const response = await api.getCurrentUser();
+          setUser(response.data);
+        } catch (error) {
+          // 静默失败，不影响应用运行
+          console.error('Failed to fetch user:', error);
+        }
       }
     };
 

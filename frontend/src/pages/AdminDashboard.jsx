@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Row, Col, Statistic, Table, Tag } from 'antd';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { api } from '../services/api';
@@ -17,10 +17,15 @@ const AdminDashboard = () => {
   const [topShortLinks, setTopShortLinks] = useState([]);
   const [topUsers, setTopUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  // 使用useRef确保API请求只执行一次
+  const fetchStatsRef = useRef(false);
 
   useEffect(() => {
     // 获取管理员统计数据
-    fetchAdminStats();
+    if (!fetchStatsRef.current) {
+      fetchStatsRef.current = true;
+      fetchAdminStats();
+    }
   }, []);
 
   const fetchAdminStats = async () => {

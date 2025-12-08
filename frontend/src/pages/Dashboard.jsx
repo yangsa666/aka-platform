@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Statistic, Row, Col, Progress, List, Tag } from 'antd';
 import { CopyOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
@@ -12,6 +12,9 @@ const Dashboard = () => {
   });
   const [recentProjects, setRecentProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // 使用useRef确保API请求只执行一次
+  const fetchStatsRef = useRef(false);
 
   useEffect(() => {
     // 获取用户项目统计
@@ -45,8 +48,12 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-
-    fetchStats();
+    
+    // 确保API请求只执行一次
+    if (!fetchStatsRef.current) {
+      fetchStats();
+      fetchStatsRef.current = true;
+    }
   }, []);
 
   // 获取状态标签

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Table, Button, Space, Tag, Modal, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
@@ -11,9 +11,15 @@ const ProjectList = () => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const navigate = useNavigate();
+  
+  // 使用useRef确保API请求只执行一次
+  const fetchProjectsRef = useRef(false);
 
   useEffect(() => {
-    fetchProjects();
+    if (!fetchProjectsRef.current) {
+      fetchProjects();
+      fetchProjectsRef.current = true;
+    }
   }, []);
 
   // 获取项目列表

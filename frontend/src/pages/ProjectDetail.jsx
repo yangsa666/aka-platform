@@ -55,10 +55,15 @@ const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const qrRef = useRef(null);
+  // 使用useRef确保API请求只执行一次
+  const fetchProjectRef = useRef({});
 
   // 获取项目详情
   useEffect(() => {
-    fetchProjectDetail();
+    if (id && fetchProjectRef.current[id] !== true) {
+      fetchProjectRef.current[id] = true;
+      fetchProjectDetail();
+    }
   }, [id]);
 
   /**
