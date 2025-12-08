@@ -183,7 +183,7 @@ const ProjectList = () => {
           <Button type="default" icon={<EditOutlined />} size="small" onClick={() => navigate(`/projects/edit/${record._id}`)}>
             Edit
           </Button>
-          <Button type="danger" icon={<DeleteOutlined />} size="small" onClick={() => confirmDelete(record._id)}>
+          <Button danger type="dashed" icon={<DeleteOutlined />} size="small" onClick={() => confirmDelete(record._id)}>
             Delete
           </Button>
         </Space>

@@ -16,7 +16,7 @@ const ProjectApproval = () => {
     status: 'pending',
     search: '',
     page: 1,
-    limit: 10,
+    limit: 100,
   });
   const navigate = useNavigate();
   const fetchProjectsRef = useRef({});
@@ -226,7 +226,7 @@ const ProjectApproval = () => {
               pageSize: filters.limit,
               onChange: (page, pageSize) => setFilters(prev => ({ ...prev, page, limit: pageSize })),
               showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50', '100'],
+              pageSizeOptions: ['100'],
               total: totalProjects,
             }}
             locale={{ emptyText: 'No projects found' }}

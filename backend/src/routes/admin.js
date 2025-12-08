@@ -73,7 +73,7 @@ router.get('/projects', authenticate, authorize(['admin']), async (req, res) => 
       ];
     }
     
-    if (status) {
+    if (status && status !== 'all') {
       query.status = status;
     }
     
