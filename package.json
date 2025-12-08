@@ -1,0 +1,11 @@
+{
+  "name": "aka-platform",
+  "version": "0.0.1",
+  "description": "A platform to redirect to the target urls based on a base domain",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Sa Yang",
+  "license": "MIT"
+}

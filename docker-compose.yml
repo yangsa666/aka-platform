@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # MongoDB服务
+  mongodb:
+    image: mongo:5.0
+    container_name: aka-platform-mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_DATABASE: aka_platform
+    volumes:
+      - mongo-data:/data/db
+      - ./mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    ports:
+      - "27017:27017"
+
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aka-platform-backend
+    restart: always
+    depends_on:
+      - mongodb
+    environment:
+      - PORT=3000
+      - MONGO_URI=mongodb://root:example@mongodb:27017/aka_platform?authSource=admin
+      - AZURE_AD_CLIENT_ID=your-client-id
+      - AZURE_AD_CLIENT_SECRET=your-client-secret
+      - AZURE_AD_TENANT_ID=your-tenant-id
+      - AZURE_AD_REDIRECT_URI=http://localhost:3000/auth/callback
+      - FRONTEND_URL=http://localhost:5173
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aka-platform-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=http://backend:3000
+      - VITE_AZURE_AD_CLIENT_ID=your-client-id
+      - VITE_AZURE_AD_TENANT_ID=your-tenant-id
+
+volumes:
+  mongo-data:
+    driver: local
