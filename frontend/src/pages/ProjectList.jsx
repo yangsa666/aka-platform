@@ -173,16 +173,15 @@ const ProjectList = () => {
       },
       sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
     },
-    {
-      title: 'Actions',
+    {      title: 'Actions',
       key: 'actions',
       render: (_, record) => (
         <Space size="middle">
-          <Button type="primary" icon={<EyeOutlined />} size="small">
-            <Link to={`/projects/${record._id}`}>View</Link>
+          <Button type="primary" icon={<EyeOutlined />} size="small" onClick={() => navigate(`/projects/${record._id}`)}>
+            View
           </Button>
-          <Button type="default" icon={<EditOutlined />} size="small">
-            <Link to={`/projects/edit/${record._id}`}>Edit</Link>
+          <Button type="default" icon={<EditOutlined />} size="small" onClick={() => navigate(`/projects/edit/${record._id}`)}>
+            Edit
           </Button>
           <Button type="danger" icon={<DeleteOutlined />} size="small" onClick={() => confirmDelete(record._id)}>
             Delete
@@ -195,8 +194,8 @@ const ProjectList = () => {
   return (
     <div style={{ padding: 24 }}>
       <Card title="My Projects" extra={
-        <Button type="primary" icon={<PlusOutlined />}>
-          <Link to="/projects/new">Create Project</Link>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/projects/new')}>
+          Create Project
         </Button>
       } loading={loading}>
         <Table

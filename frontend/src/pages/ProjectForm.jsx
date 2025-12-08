@@ -231,8 +231,8 @@ const ProjectForm = () => {
               <Button type="primary" htmlType="submit" loading={loading}>
                 {isEditing ? 'Update Project' : 'Create Project'}
               </Button>
-              <Button type="default">
-                <Link to="/projects">Cancel</Link>
+              <Button type="default" onClick={() => navigate('/projects')}>
+                Cancel
               </Button>
             </Space>
           </Form.Item>

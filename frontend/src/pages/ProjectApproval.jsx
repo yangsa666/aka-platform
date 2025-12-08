@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Table, Button, Space, Tag, Select, Input, message } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,9 +19,26 @@ const ProjectApproval = () => {
     limit: 10,
   });
   const navigate = useNavigate();
+  const fetchProjectsRef = useRef({});
 
   useEffect(() => {
-    fetchProjects();
+    // 创建一个唯一的键来标识当前请求
+    const requestKey = JSON.stringify(filters);
+    
+    // 如果当前请求已经在进行中，就不要重复请求
+    if (fetchProjectsRef.current[requestKey]) {
+      return;
+    }
+    
+    // 标记当前请求正在进行中
+    fetchProjectsRef.current[requestKey] = true;
+    
+    // 执行请求
+    fetchProjects()
+      .finally(() => {
+        // 请求完成后移除标记
+        delete fetchProjectsRef.current[requestKey];
+      });
   }, [filters]);
 
   // 获取所有项目
@@ -155,8 +172,8 @@ const ProjectApproval = () => {
       key: 'actions',
       render: (_, record) => (
         <Space size="middle">
-          <Button type="default" icon={<EyeOutlined />} size="small">
-            <Link to={`/projects/${record._id}`}>View</Link>
+          <Button type="default" icon={<EyeOutlined />} size="small" onClick={() => navigate(`/projects/${record._id}`)}>
+            View
           </Button>
           {record.status === 'pending' && (
             <>
