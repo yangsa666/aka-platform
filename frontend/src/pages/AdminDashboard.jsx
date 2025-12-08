@@ -36,7 +36,7 @@ const AdminDashboard = () => {
       ] = await Promise.all([
         api.getProjectTrends(30), // 获取30天的项目创建趋势
         api.getClickTrends(30), // 获取30天的点击趋势
-        api.getTopShortNames(30), // 获取30天内最受欢迎的短链接
+        api.getTopShortUrls(30), // 获取30天内最受欢迎的短链接
         api.getTopUsers(30), // 获取30天内创建项目最多的用户
       ]);
 

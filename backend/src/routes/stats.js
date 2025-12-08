@@ -85,7 +85,7 @@ router.get('/trends/clicks', authenticate, authorize(['admin']), async (req, res
 });
 
 // 获取Top 10热门短链接
-router.get('/top/short-names', authenticate, authorize(['admin']), async (req, res) => {
+router.get('/top/short-urls', authenticate, authorize(['admin']), async (req, res) => {
   try {
     const { days = 30 } = req.query;
     const endDate = new Date();
@@ -93,7 +93,7 @@ router.get('/top/short-names', authenticate, authorize(['admin']), async (req, r
     startDate.setDate(endDate.getDate() - parseInt(days));
     
     // 统计短链接点击量
-    const topShortNames = await AccessLog.aggregate([
+    const topShortUrls = await AccessLog.aggregate([
       {
         $match: {
           accessedAt: {
@@ -128,7 +128,7 @@ router.get('/top/short-names', authenticate, authorize(['admin']), async (req, r
       }
     ]);
     
-    res.json(topShortNames);
+    res.json(topShortUrls);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

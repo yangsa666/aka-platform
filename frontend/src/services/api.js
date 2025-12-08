@@ -93,6 +93,6 @@ export const api = {
   // Stats API
   getProjectTrends: (days) => apiClient.get(`/stats/trends/projects?days=${days}`),
   getClickTrends: (days) => apiClient.get(`/stats/trends/clicks?days=${days}`),
-  getTopShortNames: (days) => apiClient.get(`/stats/top/short-names?days=${days}`),
+  getTopShortUrls: (days) => apiClient.get(`/stats/top/short-urls?days=${days}`),
   getTopUsers: (days) => apiClient.get(`/stats/top/users?days=${days}`)
 };

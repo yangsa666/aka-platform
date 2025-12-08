@@ -6,19 +6,19 @@ const AccessLog = require('../models/AccessLog');
 // 重定向到目标URL
 router.get('/*', async (req, res) => {
   try {
-    // 从请求路径中提取短链接名称，去除开头的斜杠
+    // 从请求路径中提取短链接，去除开头的斜杠
     const shortName = req.path.slice(1);
     
-    // 如果短链接名称为空，返回404
+    // 如果短链接为空，返回404
     if (!shortName) {
-      return res.status(404).json({ message: 'Short name not found' });
+      return res.status(404).json({ message: 'Short URL not found' });
     }
     
     // 查找项目
     const project = await Project.findOne({ shortName });
     
     if (!project) {
-      return res.status(404).json({ message: 'Short name not found' });
+      return res.status(404).json({ message: 'Short URL not found' });
     }
     
     // 检查项目是否已生效

@@ -45,7 +45,7 @@ AKA Platform是一个企业级短链接管理平台，提供安全、可靠的�
 
 ### 2. 短链接管理
 - ✅ 短链接生成
-- ✅ 自定义短链接名称
+- ✅ 自定义短链接
 - ✅ 项目信息完整管理
 - ✅ 状态跟踪（待审批、已批准、已拒绝）
 - ✅ 目标URL验证
@@ -199,7 +199,7 @@ VITE_AZURE_AD_REDIRECT_URI=http://localhost:5173
 
 | 接口路径 | 方法 | 功能描述 | 权限要求 |
 |--------|------|--------|--------|
-| /stats/clicks/:shortName | GET | 获取短链接点击统计 | 项目所有者/管理员 |
+| /stats/clicks/:shortUrl | GET | 获取短链接点击统计 | 项目所有者/管理员 |
 | /stats/user | GET | 获取用户统计数据 | 已认证 |
 | /stats/project/:id | GET | 获取项目统计数据 | 项目所有者/管理员 |
 
@@ -207,8 +207,8 @@ VITE_AZURE_AD_REDIRECT_URI=http://localhost:5173
 
 | 接口路径 | 方法 | 功能描述 | 权限要求 |
 |--------|------|--------|--------|
-| /:shortName | GET | 短链接重定向 | 公开 |
-| /api/short-names/:shortName | GET | 获取短链接信息 | 已认证/管理员 |
+| /:shortUrl | GET | 短链接重定向 | 公开 |
+| /api/short-urls/:shortUrl | GET | 获取短链接信息 | 已认证/管理员 |
 
 ## 项目结构
 
@@ -308,9 +308,3 @@ frontend/
 ## 许可证
 
 MIT License
-
-## 联系信息
-
-如有问题或建议，请联系项目维护团队：
-- 项目地址：https://github.com/yangsa666/aka-platform
-- 邮件：support@aka-platform.com

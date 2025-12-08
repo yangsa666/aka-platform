@@ -88,7 +88,8 @@ const ProjectApproval = () => {
       key: 'name',
       render: (text, record) => <a href={`/projects/${record._id}`}>{text}</a>,
     },
-    {      title: 'Short Name',
+    {
+      title: 'Short URL',
       dataIndex: 'shortName',
       key: 'shortName',
       render: (text) => {

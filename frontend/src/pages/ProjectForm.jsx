@@ -3,6 +3,7 @@ import { Card, Form, Input, InputNumber, Button, Space, Select, message, Spin } 
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { UserOutlined, LinkOutlined, TagOutlined } from '@ant-design/icons';
+import { appConfig } from '../config/appConfig';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -165,14 +166,19 @@ const ProjectForm = () => {
 
           <Form.Item
             name="shortName"
-            label="Short Name"
+            label="Short URL"
             rules={[
-              { required: true, message: 'Please input short name' },
-              { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Short name can only contain letters, numbers, underscore and hyphen' },
-              { max: 50, message: 'Short name should be less than 50 characters' },
+              { required: true, message: 'Please input short URL' },
+              { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Short URL can only contain letters, numbers, underscore and hyphen' },
+              { max: 50, message: 'Short URL should be less than 50 characters' },
             ]}
           >
-            <Input prefix={<TagOutlined />} placeholder="Enter short name" />
+            <Space.Compact>
+              <Space.Addon style={{ whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                {appConfig.shortUrlDomain}/
+              </Space.Addon>
+              <Input prefix={<TagOutlined />} placeholder="Enter short URL path" />
+            </Space.Compact>
           </Form.Item>
 
           <Form.Item

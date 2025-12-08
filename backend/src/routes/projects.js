@@ -127,9 +127,12 @@ router.get('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     
-    // 验证用户是否有权限查看（必须是所有者）
-    if (!project.owners.some(owner => owner._id.equals(req.user._id))) {
-      return res.status(403).json({ message: 'Forbidden: You are not an owner of this project' });
+    // 验证用户是否有权限查看（必须是所有者或管理员）
+    const isOwner = project.owners.some(owner => owner._id.equals(req.user._id));
+    const isAdmin = req.user.role === 'admin';
+    
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Forbidden: You are not authorized to view this project' });
     }
     
     res.json(project);

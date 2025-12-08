@@ -50,6 +50,7 @@ const ProjectDetail = () => {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [qrSize, setQrSize] = useState(QR_DEFAULT_CONFIG.size);
   const { id } = useParams();
   const navigate = useNavigate();
@@ -112,6 +113,31 @@ const ProjectDetail = () => {
     return STATUS_TAGS[status] || <Tag color="default">{status}</Tag>;
   };
 
+  /**
+   * 显示删除确认模态框
+   */
+  const showDeleteConfirm = () => {
+    setDeleteModalVisible(true);
+  };
+
+  /**
+   * 删除项目
+   */
+  const deleteProject = async () => {
+    try {
+      setLoading(true);
+      await api.deleteProject(id);
+      message.success('Project deleted successfully');
+      setDeleteModalVisible(false);
+      navigate('/projects');
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      message.error('Failed to delete project');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 加载中状态不渲染内容
   if (loading || !project) return null;
 
@@ -125,7 +151,7 @@ const ProjectDetail = () => {
           {/* 基本信息 */}
           <Descriptions variant="bordered" column={2}>
             <Descriptions.Item label="Name" span={2}>{project.name}</Descriptions.Item>
-            <Descriptions.Item label="Short Name">
+            <Descriptions.Item label="Short URL">
               <a href={shortUrl} target="_blank" rel="noopener noreferrer">
                 {project.shortName}
               </a>
@@ -175,7 +201,7 @@ const ProjectDetail = () => {
             <Button type="default" icon={<CopyOutlined />} onClick={copyShortLink}>
               Copy Short Link
             </Button>
-            <Button danger icon={<DeleteOutlined />} onClick={() => {/* 实现删除功能 */}}>
+            <Button danger icon={<DeleteOutlined />} onClick={showDeleteConfirm}>
               Delete Project
             </Button>
           </Space>
@@ -218,6 +244,24 @@ const ProjectDetail = () => {
             </Button>
           </div>
         </Space>
+      </Modal>
+
+      {/* 删除确认模态框 */}
+      <Modal
+        title="Delete Project"
+        open={deleteModalVisible}
+        onCancel={() => setDeleteModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setDeleteModalVisible(false)}>
+            Cancel
+          </Button>,
+          <Button key="delete" type="primary" danger onClick={deleteProject}>
+            Delete
+          </Button>
+        ]}
+        width={400}
+      >
+        <p>Are you sure you want to delete this project? This action cannot be undone.</p>
       </Modal>
     </div>
   );

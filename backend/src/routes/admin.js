@@ -104,7 +104,7 @@ router.get('/export/csv', authenticate, authorize(['admin']), async (req, res) =
       header: [
         { id: 'name', title: 'Project Name' },
         { id: 'description', title: 'Description' },
-        { id: 'shortName', title: 'Short Name' },
+        { id: 'shortName', title: 'Short URL' },
         { id: 'targetUrl', title: 'Target URL' },
         { id: 'status', title: 'Status' },
         { id: 'owners', title: 'Owners' },
