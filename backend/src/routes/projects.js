@@ -5,6 +5,8 @@ const { authenticate } = require('../middleware/auth');
 const Project = require('../models/Project');
 const ApprovalRecord = require('../models/ApprovalRecord');
 const User = require('../models/User');
+const { searchUsers } = require('../services/graph-api');
+
 
 /**
  * 辅助函数：验证项目所有者数量
@@ -33,19 +35,45 @@ const validateTargetUrl = (url) => {
 const convertEmailsToUserIds = async (emails) => {
   const ownerIds = [];
   for (const email of emails) {
+    // 1. 先在本地数据库中查找用户
     let user = await User.findOne({ email });
+    
     if (!user) {
-      // 如果用户不存在，自动创建新用户记录
-      user = new User({
-        email,
-        displayName: email.split('@')[0], // 使用邮箱前缀作为显示名称
-        azureId: `temp-${email}`, // 临时azureId
-        role: 'user'
-      });
-      await user.save();
+      try {
+        // 2. 如果本地没有找到，通过Graph API搜索用户
+        const graphUsers = await searchUsers(email);
+        
+        if (graphUsers.length > 0) {
+          // 3. 使用Graph API返回的第一个匹配用户
+          const graphUser = graphUsers.find(u => u.mail.toLowerCase() === email.toLowerCase() || u.userPrincipalName.toLowerCase() === email.toLowerCase());
+          
+          if (graphUser) {
+            // 4. 创建新用户记录，包含完整的Azure AD信息
+            user = await User.create({
+              azureId: graphUser.id, // 使用AAD Object ID作为azureId
+              displayName: graphUser.displayName,
+              email: graphUser.mail || graphUser.userPrincipalName,
+              givenName: graphUser.givenName,
+              surname: graphUser.surname,
+              role: 'user'
+            });
+          } else {
+            // 如果Graph API没有找到匹配的用户，抛出错误
+            throw new Error(`User with email ${email} not found in Azure AD`);
+          }
+        } else {
+          // 如果Graph API没有找到用户，抛出错误
+          throw new Error(`User with email ${email} not found in Azure AD`);
+        }
+      } catch (error) {
+        console.error('Error searching user in Graph API:', error);
+        throw error;
+      }
     }
+    
     ownerIds.push(user._id);
   }
+  
   return ownerIds;
 };
 

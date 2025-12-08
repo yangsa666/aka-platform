@@ -39,16 +39,30 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ message: 'Unauthorized: No user ID found in token' });
     }
     
-    // 查找或创建用户
-    let user = await User.findOne({ azureId: userId });
-    console.log('User found:', user ? user._id : 'null');
-    
     // 获取用户email地址（检查多个可能的字段）
     const userEmail = userInfo.email || userInfo.upn || userInfo.preferred_username;
     
     // 如果没有获取到email地址，使用基于userId的默认值
     const finalEmail = userEmail || `${userId}@example.com`;
     
+    // 查找或创建用户
+    // 1. 先通过azureId查找
+    let user = await User.findOne({ azureId: userId });
+    console.log('User found by azureId:', user ? user._id : 'null');
+    
+    // 2. 如果没有找到，再通过email查找
+    if (!user && userEmail) {
+      user = await User.findOne({ email: userEmail });
+      console.log('User found by email:', user ? user._id : 'null');
+      
+      // 如果通过email找到了用户，更新其azureId
+      if (user) {
+        user.azureId = userId;
+        console.log('Updated user azureId:', user._id);
+      }
+    }
+    
+    // 3. 如果两种方式都没有找到，才创建新用户
     if (!user) {
       console.log('Creating new user:', {
         azureId: userId,

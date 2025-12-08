@@ -187,7 +187,7 @@ const ProjectForm = () => {
             rules={[
               { required: true, message: 'Please input target URL' },
               { type: 'url', message: 'Please input a valid URL' },
-              { pattern: /^https?:\/\//, message: 'URL should start with http:// or https://' },
+              { pattern: /^https:\/\//, message: 'URL should start with https://' },
             ]}
           >
             <Input prefix={<LinkOutlined />} placeholder="Enter target URL" />
