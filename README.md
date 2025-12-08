@@ -31,35 +31,43 @@ AKA Platform是一个企业级短链接管理平台，提供安全、可靠的�
 | 数据库        | MongoDB                      | 5.0+    |
 | 认证服务       | Azure AD (OAuth 2.0)         | -       |
 | 容器化部署      | Docker + Docker Compose      | 20.x+   |
+| 认证库        | @azure/msal-browser          | 3.x     |
+|              | @azure/msal-react            | 2.x     |
+| HTTP客户端     | Axios                        | 1.x     |
 
 ## 功能模块
 
 ### 1. 用户认证与授权
-- Azure AD单点登录
-- 基于角色的访问控制(RBAC)
-- 用户信息同步
+- ✅ Azure AD单点登录
+- ✅ 基于角色的访问控制(RBAC)
+- ✅ 用户信息自动同步
+- ✅ 会话状态持久化管理
 
 ### 2. 短链接管理
-- 短链接生成
-- 自定义短链接名称
-- 项目信息管理
-- 状态跟踪（待审批、已批准、已拒绝）
+- ✅ 短链接生成
+- ✅ 自定义短链接名称
+- ✅ 项目信息完整管理
+- ✅ 状态跟踪（待审批、已批准、已拒绝）
+- ✅ 目标URL验证
+- ✅ 项目所有者验证
 
 ### 3. 审批流程
-- 管理员审批机制
-- 审批历史记录
-- 审批通知（待实现）
+- ✅ 管理员审批机制
+- ✅ 审批历史记录
+- ⏳ 审批通知（待实现）
 
 ### 4. 统计分析
-- 点击量统计
-- 访问趋势分析
-- 设备类型分布
-- 地理位置统计（待实现）
+- ✅ 点击量统计
+- ✅ 访问趋势分析
+- ✅ 设备类型分布
+- ⏳ 地理位置统计（待实现）
+- ✅ 管理员全局统计视图
 
 ### 5. 系统管理
-- 用户管理（待实现）
-- 系统监控
-- 日志管理（待实现）
+- ⏳ 用户管理（待实现）
+- ✅ 系统监控
+- ✅ 访问日志记录
+- ⏳ 日志管理界面（待实现）
 
 ## 安装部署
 
@@ -136,10 +144,6 @@ AZURE_AD_SCOPES=openid profile email
 
 # 前端配置
 FRONTEND_URL=http://localhost:5173
-
-# JWT 配置
-JWT_SECRET=your-jwt-secret-key
-JWT_EXPIRES_IN=24h
 ```
 
 ### 前端环境变量 (frontend/.env)
@@ -163,10 +167,8 @@ VITE_AZURE_AD_REDIRECT_URI=http://localhost:5173
 
 | 接口路径 | 方法 | 功能描述 | 权限要求 |
 |--------|------|--------|--------|
-| /auth/login | GET | 重定向到Azure AD登录页面 | 公开 |
-| /auth/callback | GET | Azure AD回调处理 | 公开 |
 | /auth/me | GET | 获取当前用户信息 | 已认证 |
-| /auth/logout | GET | 登出系统 | 已认证 |
+| /auth/refresh-token | POST | 刷新访问令牌 | 已认证 |
 
 ### 项目管理
 
@@ -187,18 +189,26 @@ VITE_AZURE_AD_REDIRECT_URI=http://localhost:5173
 | /admin/projects/:id/reject | PUT | 拒绝项目 | 管理员 |
 | /admin/stats | GET | 获取系统统计数据 | 管理员 |
 
+### 用户搜索接口
+
+| 接口路径 | 方法 | 功能描述 | 权限要求 |
+|--------|------|--------|--------|
+| /users/search | GET | 搜索用户 | 已认证 |
+
 ### 统计接口
 
 | 接口路径 | 方法 | 功能描述 | 权限要求 |
 |--------|------|--------|--------|
 | /stats/clicks/:shortName | GET | 获取短链接点击统计 | 项目所有者/管理员 |
 | /stats/user | GET | 获取用户统计数据 | 已认证 |
+| /stats/project/:id | GET | 获取项目统计数据 | 项目所有者/管理员 |
 
 ### 短链接重定向
 
 | 接口路径 | 方法 | 功能描述 | 权限要求 |
 |--------|------|--------|--------|
 | /:shortName | GET | 短链接重定向 | 公开 |
+| /api/short-names/:shortName | GET | 获取短链接信息 | 已认证/管理员 |
 
 ## 项目结构
 
@@ -227,13 +237,14 @@ backend/
 │   │   ├── projectRoutes.js
 │   │   ├── adminRoutes.js
 │   │   └── statsRoutes.js
+│   ├── scripts/         # 脚本文件
 │   ├── services/        # 业务逻辑
 │   │   ├── authService.js
 │   │   ├── projectService.js
 │   │   └── statsService.js
 │   └── index.js         # 应用入口
 ├── .env.example         # 环境变量示例
-├── package.json
+├── package.json         # 依赖配置
 └── Dockerfile
 ```
 
@@ -243,26 +254,26 @@ backend/
 frontend/
 ├── src/
 │   ├── components/      # 通用组件
-│   │   ├── Layout.jsx
-│   │   └── ProtectedRoute.jsx
+│   │   ├── Layout.jsx   # 布局组件
 │   ├── pages/           # 页面组件
-│   │   ├── LoginPage.jsx
-│   │   ├── Dashboard.jsx
-│   │   ├── ProjectList.jsx
-│   │   ├── ProjectForm.jsx
-│   │   ├── ProjectDetail.jsx
-│   │   ├── AdminDashboard.jsx
-│   │   └── ProjectApproval.jsx
+│   │   ├── AdminDashboard.jsx   # 管理员仪表盘
+│   │   ├── AppInitializer.jsx   # 应用初始化组件
+│   │   ├── Dashboard.jsx        # 用户仪表盘
+│   │   ├── LoginPage.jsx        # 登录页面
+│   │   ├── ProjectApproval.jsx  # 项目审批页面
+│   │   ├── ProjectDetail.jsx    # 项目详情页面
+│   │   ├── ProjectForm.jsx      # 项目表单页面
+│   │   └── ProjectList.jsx      # 项目列表页面
 │   ├── services/        # API服务
-│   │   ├── api.js
-│   │   ├── authService.js
-│   │   └── projectService.js
+│   │   └── api.js       # API请求配置
 │   ├── utils/           # 工具函数
 │   ├── App.jsx          # 应用组件
 │   ├── main.jsx         # 应用入口
 │   └── theme.js         # 主题配置
+├── public/              # 静态资源
 ├── .env.example         # 环境变量示例
-├── package.json
+├── package.json         # 依赖配置
+├── vite.config.js       # Vite配置
 └── Dockerfile
 ```
 
@@ -301,5 +312,5 @@ MIT License
 ## 联系信息
 
 如有问题或建议，请联系项目维护团队：
-- 项目地址：https://github.com/your-organization/aka-platform
+- 项目地址：https://github.com/yangsa666/aka-platform
 - 邮件：support@aka-platform.com
