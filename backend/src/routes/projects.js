@@ -46,6 +46,12 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Target URL must start with https://' });
     }
     
+    // 检查shortName是否已经存在
+    const existingProject = await Project.findOne({ shortName });
+    if (existingProject) {
+      return res.status(400).json({ message: 'Short name already exists' });
+    }
+    
     // 创建新项目
     const project = new Project({
       name,
@@ -279,6 +285,14 @@ router.put('/:id', authenticate, async (req, res) => {
     
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
+    }
+    
+    // 检查shortName是否已经被其他项目使用
+    if (shortName !== project.shortName) {
+      const existingProject = await Project.findOne({ shortName });
+      if (existingProject) {
+        return res.status(400).json({ message: 'Short name already exists' });
+      }
     }
     
     // 验证用户是否有权限更新（必须是所有者）
