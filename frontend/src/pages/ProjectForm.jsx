@@ -210,7 +210,7 @@ const ProjectForm = () => {
               <Space.Addon style={{ whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'ellipsis', maxWidth: '100%' }}>
                 {appConfig.shortUrlDomain}/
               </Space.Addon>
-              <Input prefix={<TagOutlined />} placeholder="Enter short URL path" value={form.getFieldValue('shortName')} />
+              <Input prefix={<TagOutlined />} placeholder={form.getFieldValue('shortName') || "Enter short URL path"} />
             </Space.Compact>
           </Form.Item>
 
