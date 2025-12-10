@@ -153,7 +153,7 @@ router.get('/top/users', authenticate, authorize(['admin']), async (req, res) =>
         }
       },
       {
-        $unwind: '$owners'
+        $unwind: { path: '$owners', preserveNullAndEmptyArrays: true }
       },
       {
         $group: {
@@ -165,19 +165,26 @@ router.get('/top/users', authenticate, authorize(['admin']), async (req, res) =>
         $lookup: {
           from: 'users',
           localField: '_id',
-          foreignField: '_id',
+          foreignField: 'azureId',
           as: 'userInfo'
         }
       },
       {
-        $unwind: '$userInfo'
+        $unwind: {
+          path: '$userInfo',
+          preserveNullAndEmptyArrays: true
+        }
       },
       {
         $project: {
           _id: 0,
           userId: '$userInfo._id',
-          displayName: '$userInfo.displayName',
-          email: '$userInfo.email',
+          displayName: {
+            $ifNull: ['$userInfo.displayName', 'Unknown User']
+          },
+          email: {
+            $ifNull: ['$userInfo.email', 'unknown@example.com']
+          },
           projectCount: 1
         }
       },

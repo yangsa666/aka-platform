@@ -45,8 +45,19 @@ const AdminDashboard = () => {
         api.getTopUsers(30), // 获取30天内创建项目最多的用户
       ]);
 
+      // 处理项目创建趋势数据 - 将_id字段重命名为date
+      const projectCreationData = projectCreationResponse.data.map(item => ({
+        date: item._id,
+        count: item.count
+      }));
+      
+      // 处理点击趋势数据 - 将_id字段重命名为date
+      const clickTrendsData = clickTrendsResponse.data.map(item => ({
+        date: item._id,
+        count: item.count
+      }));
+      
       // 计算总统计数据
-      const projectCreationData = projectCreationResponse.data;
       const totalProjects = projectCreationData.reduce((sum, item) => sum + item.count, 0);
       
       // 这里需要额外获取待审批和已审批项目的数量
@@ -57,7 +68,7 @@ const AdminDashboard = () => {
       });
       const pendingProjects = allProjectsResponse.data.projects.filter(p => p.status === 'pending').length;
       const approvedProjects = allProjectsResponse.data.projects.filter(p => p.status === 'approved').length;
-      const totalClicks = clickTrendsResponse.data.reduce((sum, item) => sum + item.count, 0);
+      const totalClicks = clickTrendsData.reduce((sum, item) => sum + item.count, 0);
 
       setStats({
         totalProjects,
@@ -68,11 +79,24 @@ const AdminDashboard = () => {
 
       setTrends({
         projectCreation: projectCreationData,
-        clickTrends: clickTrendsResponse.data,
+        clickTrends: clickTrendsData,
       });
 
-      setTopShortLinks(topShortLinksResponse.data);
-      setTopUsers(topUsersResponse.data);
+      // 处理topShortLinks数据 - 将_id字段重命名为shortName，clickCount重命名为count
+      const processedTopShortLinks = topShortLinksResponse.data.map(item => ({
+        shortName: item._id,
+        targetUrl: item.targetUrl,
+        count: item.clickCount
+      }));
+      
+      // 处理topUsers数据 - 将displayName重命名为user，projectCount重命名为count
+      const processedTopUsers = topUsersResponse.data.map(item => ({
+        user: item.displayName,
+        count: item.projectCount
+      }));
+
+      setTopShortLinks(processedTopShortLinks);
+      setTopUsers(processedTopUsers);
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
     } finally {

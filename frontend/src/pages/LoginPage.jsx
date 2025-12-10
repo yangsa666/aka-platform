@@ -70,7 +70,7 @@ const LoginPage = () => {
           <Divider />
 
           <Paragraph style={{ margin: 0, fontSize: 12, color: '#999', textAlign: 'center' }}>
-            © {new Date().getFullYear()} AKA Platform. All rights reserved.
+            Developped by Sa Yang with ❤️. © {new Date().getFullYear()} All rights reserved.
           </Paragraph>
         </Space>
       </Card>
